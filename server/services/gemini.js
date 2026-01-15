@@ -6,8 +6,14 @@
 import { GoogleGenAI } from '@google/genai';
 import { SYSTEM_PROMPT } from '../config/prompts.js';
 
-// 初始化Gemini客户端
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// 初始化Gemini客户端 (延迟初始化以确保环境变量已加载)
+const getAiClient = () => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('未配置 GEMINI_API_KEY');
+    }
+    return new GoogleGenAI({ apiKey });
+};
 
 /**
  * 发送消息到Gemini，使用RAG进行回答
@@ -18,6 +24,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
  */
 export async function sendMessageWithRAG(userMessage, history = [], fileSearchStoreName) {
     try {
+        const ai = getAiClient();
+
         // 构建对话内容
         const contents = [
             ...history.map(msg => ({
@@ -52,8 +60,9 @@ export async function sendMessageWithRAG(userMessage, history = [], fileSearchSt
 
         return text;
     } catch (error) {
-        console.error('Gemini API错误:', error);
-        throw new Error('AI服务暂时不可用，请稍后再试。');
+        console.error('Gemini API 详细错误:', JSON.stringify(error, null, 2));
+        // 直接抛出原始错误，让上层处理具体的错误信息
+        throw error;
     }
 }
 
@@ -64,6 +73,7 @@ export async function sendMessageWithRAG(userMessage, history = [], fileSearchSt
  */
 export async function createFileSearchStore(displayName) {
     try {
+        const ai = getAiClient();
         const store = await ai.fileSearchStores.create({
             config: { displayName }
         });
@@ -97,6 +107,7 @@ export async function uploadFileToStore(filePath, fileSearchStoreName, displayNa
     const mimeType = mimeTypes[ext] || 'text/plain';
 
     try {
+        const ai = getAiClient();
         let operation = await ai.fileSearchStores.uploadToFileSearchStore({
             file: filePath,
             fileSearchStoreName,
@@ -126,6 +137,7 @@ export async function uploadFileToStore(filePath, fileSearchStoreName, displayNa
  */
 export async function listFileSearchStores() {
     try {
+        const ai = getAiClient();
         const stores = await ai.fileSearchStores.list();
         return stores;
     } catch (error) {

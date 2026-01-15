@@ -8,28 +8,29 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { sendMessageWithRAG } from './services/gemini.js'; // 静态导入
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 先加载环境变量（必须在导入gemini模块之前）
-dotenv.config({ path: path.join(__dirname, '.env') });
-
-// 然后再导入gemini服务（需要API_KEY已加载）
-const { sendMessageWithRAG } = await import('./services/gemini.js');
+// 仅在本地开发时手动加载环境变量
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({ path: path.join(__dirname, '.env') });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // 中间件
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    methods: ['GET', 'POST'],
-    credentials: true
+    origin: true, // 允许所有来源，解决Vercel部署后的CORS问题
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
-// 获取File Search Store名称
+// 获取File Search Store名称 - Vercel会自动注入环境变量
 const FILE_SEARCH_STORE_NAME = process.env.FILE_SEARCH_STORE_NAME || null;
 
 /**
@@ -59,9 +60,30 @@ app.post('/api/chat', async (req, res) => {
             timestamp: Date.now()
         });
     } catch (error) {
-        console.error('Chat API错误:', error);
-        res.status(500).json({
-            error: error.message || 'AI服务暂时不可用'
+        // 详细错误日志
+        console.error('Chat API Error:', {
+            message: error.message,
+            stack: error.stack,
+            cause: error.cause
+        });
+
+        // 区分不同类型的错误返回
+        const statusCode = error.status || 500;
+        let errorMessage = error.message || 'AI服务暂时不可用';
+
+        // 如果是 Vercel 部署环境，给出更明确的提示
+        if (!process.env.GEMINI_API_KEY) {
+            errorMessage = '服务端配置错误: 缺少 GEMINI_API_KEY';
+        } else if (error.message && error.message.includes('API key')) {
+            errorMessage = 'Vercel环境变量无效: GEMINI_API_KEY';
+        } else if (error.message && error.message.includes('quota')) {
+            errorMessage = 'API配额超限 (429 Resource Exhausted)';
+        }
+
+        res.status(statusCode).json({
+            error: errorMessage,
+            timestamp: Date.now(),
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 });
@@ -70,11 +92,14 @@ app.post('/api/chat', async (req, res) => {
  * GET /api/health
  * 健康检查端点
  */
+// 健康检查端点
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
+        hasApiKey: !!process.env.GEMINI_API_KEY,
         hasFileSearchStore: !!FILE_SEARCH_STORE_NAME,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        version: '1.0.1-debug' // 增加版本号方便验证部署状态
     });
 });
 

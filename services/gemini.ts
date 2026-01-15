@@ -39,14 +39,15 @@ export const sendMessageToGemini = async (
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'API请求失败');
+      const errorData = await response.json();
+      throw new Error(errorData.error || `请求失败: ${response.status}`);
     }
 
     const data: ChatResponse = await response.json();
     return data.response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("API Error:", error);
-    return "抱歉，与AI服务通信时出现错误，请稍后再试。";
+    // 返回具体错误信息
+    return `出错啦: ${error.message || "与AI服务连接不稳定"}`;
   }
 };
