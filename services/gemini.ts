@@ -48,6 +48,6 @@ export const sendMessageToGemini = async (
   } catch (error: any) {
     console.error("API Error:", error);
     // 返回具体错误信息
-    return `出错啦: ${error.message || "与AI服务连接不稳定"}`;
+    return `Error: ${error.message || "Connection to AI service failed."}`;
   }
 };

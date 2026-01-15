@@ -43,7 +43,7 @@ app.post('/api/chat', async (req, res) => {
 
         if (!message || typeof message !== 'string') {
             return res.status(400).json({
-                error: '请提供有效的消息内容'
+                error: 'Please provide a valid message.'
             });
         }
 
@@ -73,11 +73,11 @@ app.post('/api/chat', async (req, res) => {
 
         // 如果是 Vercel 部署环境，给出更明确的提示
         if (!process.env.GEMINI_API_KEY) {
-            errorMessage = '服务端配置错误: 缺少 GEMINI_API_KEY';
+            errorMessage = 'Server Configuration Error: Missing GEMINI_API_KEY';
         } else if (error.message && error.message.includes('API key')) {
-            errorMessage = 'Vercel环境变量无效: GEMINI_API_KEY';
+            errorMessage = 'Invalid API Key Configuration';
         } else if (error.message && error.message.includes('quota')) {
-            errorMessage = 'API配额超限 (429 Resource Exhausted)';
+            errorMessage = 'I am currently overwhelmed with requests. Please give me a minute and try again. (429 Quota Exceeded)';
         }
 
         res.status(statusCode).json({
