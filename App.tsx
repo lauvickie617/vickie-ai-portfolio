@@ -261,7 +261,7 @@ const App: React.FC = () => {
                       }
                     `}
                   >
-                    <div className={`message-stream text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${msg.isGenerating ? 'cursor-active' : ''}`}>
+                    <div className={`message-stream text-[15px] sm:text-base leading-relaxed whitespace-pre-wrap ${msg.isGenerating ? 'cursor-active' : ''}`}>
                       {msg.content}
                     </div>
                   </div>
