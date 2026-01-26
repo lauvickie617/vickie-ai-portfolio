@@ -32,3 +32,18 @@ export async function logChat(userMessage, aiResponse, metadata = {}) {
         console.error('Failed to log chat to database:', error);
     }
 }
+
+/**
+ * Test database connection
+ */
+export async function checkDatabaseConnection() {
+    try {
+        if (!process.env.POSTGRES_URL) {
+            return { success: false, error: 'Environment variable POSTGRES_URL is not set' };
+        }
+        const result = await sql`SELECT NOW() as now`;
+        return { success: true, timestamp: result.rows[0].now };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}

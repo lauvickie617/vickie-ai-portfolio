@@ -122,7 +122,23 @@ app.get('/api/health', (req, res) => {
 app.get('/api/store-info', (req, res) => {
     res.json({
         configured: !!FILE_SEARCH_STORE_NAME,
-        storeName: FILE_SEARCH_STORE_NAME || null
+    });
+});
+
+/**
+ * GET /api/db-check
+ * 调试端点，检查数据库连接
+ */
+import { checkDatabaseConnection } from './services/db.js';
+app.get('/api/db-check', async (req, res) => {
+    const result = await checkDatabaseConnection();
+    res.json({
+        check: 'Database Connection Test',
+        ...result,
+        env: {
+            // 只显示是否存在，不显示具体值
+            hasPostgresUrl: !!process.env.POSTGRES_URL
+        }
     });
 });
 
