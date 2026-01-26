@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { sendMessageWithRAG } from './services/gemini.js'; // 静态导入
+import { logChat } from './services/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,6 +60,17 @@ app.post('/api/chat', async (req, res) => {
             response,
             timestamp: Date.now()
         });
+
+        // 异步记录聊天日志（不阻塞响应）
+        const metadata = {
+            ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+            userAgent: req.headers['user-agent'],
+            referer: req.headers['referer']
+        };
+
+        logChat(message, response, metadata).catch(err =>
+            console.error('Background logging failed:', err)
+        );
     } catch (error) {
         // 详细错误日志
         console.error('Chat API Error:', {
