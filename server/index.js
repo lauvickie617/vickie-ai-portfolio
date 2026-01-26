@@ -56,21 +56,25 @@ app.post('/api/chat', async (req, res) => {
             FILE_SEARCH_STORE_NAME
         );
 
-        res.json({
-            response,
-            timestamp: Date.now()
-        });
-
-        // 异步记录聊天日志（不阻塞响应）
+        // 记录聊天日志 (await确保在Serverless函数结束前完成)
         const metadata = {
             ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
             userAgent: req.headers['user-agent'],
             referer: req.headers['referer']
         };
 
-        logChat(message, response, metadata).catch(err =>
-            console.error('Background logging failed:', err)
-        );
+        try {
+            await logChat(message, response, metadata);
+        } catch (logErr) {
+            console.error('Logging failed:', logErr);
+        }
+
+        res.json({
+            response,
+            timestamp: Date.now()
+        });
+
+
     } catch (error) {
         // 详细错误日志
         console.error('Chat API Error:', {
